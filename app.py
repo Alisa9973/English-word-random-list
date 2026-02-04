@@ -3,7 +3,7 @@ import random
 import streamlit as st
 
 st.set_page_config(page_title="例文ランダム表示", page_icon="🎲")
-st.title("🎲 例文ランダム表示")
+st.header("🎲 例文ランダム表示")
 
 # ===== JSON読み込み =====
 with open("data.json", encoding="utf-8") as f:
