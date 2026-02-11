@@ -4,7 +4,8 @@ import streamlit as st
 
 st.set_page_config(page_title="例文ランダム表示", page_icon="🎲")
 
-st.markdown("####🎲 例文ランダムテスト（10問）")
+st.markdown("### 🎲 例文ランダムテスト（10問）")
+st.markdown("<div style='font-size:0.9em; color:gray;'>出題範囲を選択</div>", unsafe_allow_html=True)
 
 # ===== JSON読み込み =====
 with open("data.json", encoding="utf-8") as f:
@@ -25,36 +26,40 @@ def new_test(min_no, max_no):
     st.session_state.index = 0
     st.session_state.range_label = f"{min_no}〜{max_no}"
 
-# ===== 出題範囲ボタン自動生成 =====
-st.markdown("##### 出題範囲を選択")
-
-# 最大番号取得
+# ===== 出題範囲ボタン（横スクロール） =====
 max_number = max(int(item["番号"]) for item in DATA)
-
-# 100刻み範囲作成
 ranges = [(i, min(i+99, max_number)) for i in range(1, max_number+1, 100)]
 
-# 4列レイアウト
-cols = st.columns(4)
+# 横並びラッパー
+st.markdown(
+    """
+    <div style="
+        display:flex;
+        overflow-x:auto;
+        gap:6px;
+        padding-bottom:8px;
+    ">
+    """,
+    unsafe_allow_html=True
+)
 
-for idx, (start, end) in enumerate(ranges):
-    col = cols[idx % 4]
-    with col:
-        if st.button(f"{start}〜{end}"):
-            new_test(start, end)
+for start, end in ranges:
+    if st.button(f"{start}〜{end}", key=f"range_{start}"):
+        new_test(start, end)
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # ===== 範囲未選択時 =====
 if "test_set" not in st.session_state:
-    st.info("範囲を選んでください 👆")
     st.stop()
 
-# ===== 現在の問題 =====
+# ===== 現在の問題表示 =====
 current = st.session_state.test_set[st.session_state.index]
 
 st.markdown(
     f"""
-    <div style="font-size:1.3em; line-height:1.7;
-                padding:16px; border-radius:12px;
+    <div style="font-size:1.25em; line-height:1.7;
+                padding:14px; border-radius:10px;
                 background:#f6f7f9;">
       <b>{st.session_state.range_label}</b><br><br>
       <b>Q{st.session_state.index + 1} / 10</b><br><br>
@@ -64,18 +69,18 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ===== ボタン =====
+# ===== ナビゲーション =====
 colA, colB = st.columns(2)
 
 with colA:
     if st.session_state.index < 9:
-        if st.button("次へ ▶"):
+        if st.button("次へ ▶", use_container_width=True):
             st.session_state.index += 1
     else:
         st.success("🎉 テスト終了！")
 
 with colB:
-    if st.button("🔄 同じ範囲でやり直す"):
+    if st.button("🔄 やり直す", use_container_width=True):
         parts = st.session_state.range_label.split("〜")
         new_test(int(parts[0]), int(parts[1]))
 
