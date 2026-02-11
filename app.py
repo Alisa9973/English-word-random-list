@@ -26,34 +26,16 @@ def new_test(min_no, max_no):
     st.session_state.index = 0
     st.session_state.range_label = f"{min_no}〜{max_no}"
 
-# ===== 出題範囲ボタン（スマホでも横並び固定） =====
+# ===== 出題範囲ボタン（完全横並び固定） =====
 max_number = max(int(item["番号"]) for item in DATA)
 ranges = [(i, min(i+99, max_number)) for i in range(1, max_number+1, 100)]
 
-st.markdown(
-    """
-    <style>
-    .range-container {
-        display: flex;
-        overflow-x: auto;
-        gap: 6px;
-        padding-bottom: 10px;
-    }
-    .range-container button {
-        flex: 0 0 auto;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+cols = st.columns(len(ranges))  # ← 列を一気に全部作る
 
-st.markdown('<div class="range-container">', unsafe_allow_html=True)
-
-for start, end in ranges:
-    if st.button(f"{start}〜{end}", key=f"range_{start}"):
-        new_test(start, end)
-
-st.markdown('</div>', unsafe_allow_html=True)
+for i, (start, end) in enumerate(ranges):
+    with cols[i]:
+        if st.button(f"{start}〜{end}"):
+            new_test(start, end)
 
 
 # ===== 範囲未選択時 =====
