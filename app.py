@@ -26,16 +26,27 @@ def new_test(min_no, max_no):
     st.session_state.index = 0
     st.session_state.range_label = f"{min_no}〜{max_no}"
 
-# ===== 出題範囲ボタン（完全横並び固定） =====
+# ===== 出題範囲スライダー =====
 max_number = max(int(item["番号"]) for item in DATA)
-ranges = [(i, min(i+99, max_number)) for i in range(1, max_number+1, 100)]
 
-cols = st.columns(len(ranges))  # ← 列を一気に全部作る
+block_size = 100
+max_block = (max_number - 1) // block_size
 
-for i, (start, end) in enumerate(ranges):
-    with cols[i]:
-        if st.button(f"{start}〜{end}"):
-            new_test(start, end)
+selected_block = st.slider(
+    "出題範囲（100語刻み）",
+    min_value=0,
+    max_value=max_block,
+    value=0
+)
+
+start = selected_block * block_size + 1
+end = min(start + block_size - 1, max_number)
+
+st.caption(f"現在の範囲：{start}〜{end}")
+
+if st.button("この範囲で開始"):
+    new_test(start, end)
+
 
 
 # ===== 範囲未選択時 =====
