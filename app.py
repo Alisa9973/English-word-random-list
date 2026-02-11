@@ -3,13 +3,14 @@ import random
 import streamlit as st
 
 st.set_page_config(page_title="例文ランダム表示", page_icon="🎲")
+
 st.subheader("🎲 例文ランダムテスト（10問）")
 
 # ===== JSON読み込み =====
 with open("data.json", encoding="utf-8") as f:
     DATA = json.load(f)
 
-# ===== テスト生成 =====
+# ===== テスト生成関数 =====
 def new_test(min_no, max_no):
     filtered = [
         item for item in DATA
@@ -24,20 +25,25 @@ def new_test(min_no, max_no):
     st.session_state.index = 0
     st.session_state.range_label = f"{min_no}〜{max_no}"
 
-# ===== 範囲ボタン =====
+# ===== 出題範囲ボタン自動生成 =====
 st.markdown("### 出題範囲を選択")
 
-col1, col2 = st.columns(2)
+# 最大番号取得
+max_number = max(int(item["番号"]) for item in DATA)
 
-with col1:
-    if st.button("1〜100"):
-        new_test(1, 100)
+# 100刻み範囲作成
+ranges = [(i, min(i+99, max_number)) for i in range(1, max_number+1, 100)]
 
-with col2:
-    if st.button("101〜200"):
-        new_test(101, 200)
+# 4列レイアウト
+cols = st.columns(4)
 
-# ===== 初期状態 =====
+for idx, (start, end) in enumerate(ranges):
+    col = cols[idx % 4]
+    with col:
+        if st.button(f"{start}〜{end}"):
+            new_test(start, end)
+
+# ===== 範囲未選択時 =====
 if "test_set" not in st.session_state:
     st.info("範囲を選んでください 👆")
     st.stop()
@@ -58,7 +64,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ===== 次へボタン =====
+# ===== ボタン =====
 colA, colB = st.columns(2)
 
 with colA:
@@ -72,3 +78,5 @@ with colB:
     if st.button("🔄 同じ範囲でやり直す"):
         parts = st.session_state.range_label.split("〜")
         new_test(int(parts[0]), int(parts[1]))
+
+st.caption(f"全 {len(DATA)} 件")
