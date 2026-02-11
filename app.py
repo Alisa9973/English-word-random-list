@@ -4,7 +4,7 @@ import streamlit as st
 
 st.set_page_config(page_title="例文ランダム表示", page_icon="🎲")
 
-st.subheader("🎲 例文ランダムテスト（10問）")
+st.markdown("####🎲 例文ランダムテスト（10問）")
 
 # ===== JSON読み込み =====
 with open("data.json", encoding="utf-8") as f:
@@ -26,7 +26,7 @@ def new_test(min_no, max_no):
     st.session_state.range_label = f"{min_no}〜{max_no}"
 
 # ===== 出題範囲ボタン自動生成 =====
-st.markdown("### 出題範囲を選択")
+st.markdown("##### 出題範囲を選択")
 
 # 最大番号取得
 max_number = max(int(item["番号"]) for item in DATA)
