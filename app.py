@@ -33,11 +33,12 @@ def new_test(min_no, max_no):
     st.session_state.index = 0
     st.session_state.range_label = f"{min_no}〜{max_no}"
 
-# ===== TTS関数（AI音声）=====
+# ===== TTS関数（キャッシュ付き）=====
+@st.cache_data(show_spinner=False)
 def generate_tts_audio(text):
     response = client.audio.speech.create(
-        model="gpt-4o-mini-tts",   # ネイティブ風
-        voice="alloy",             # alloy / verse など選べる
+        model="gpt-4o-mini-tts",
+        voice="alloy",
         input=text
     )
     return response.read()
