@@ -35,26 +35,23 @@ def new_test(min_no, max_no):
     st.session_state.index = 0
     st.session_state.range_label = f"{min_no}〜{max_no}"
 
-# ===== TTS関数（キャッシュ付き）=====
-@st.cache_data(show_spinner=False)
+# ===== TTS関数（安定版）=====
 def generate_tts_audio(text: str) -> bytes:
-    # 一旦 mp3 に書き出してから bytes を読む（Streamlitで安定）
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
         tmp_path = Path(tmp.name)
 
     try:
-        with client.audio.speech.with_streaming_response.create(
+        response = client.audio.speech.create(
             model="gpt-4o-mini-tts",
             voice="alloy",
             input=text,
-        ) as response:
-            response.stream_to_file(tmp_path)  # ←公式のやり方 :contentReference[oaicite:1]{index=1}
-
+        )
+        tmp_path.write_bytes(response.read())
         return tmp_path.read_bytes()
 
     finally:
         try:
-            tmp_path.unlink(missing_ok=True)
+            tmp_path.unlink()
         except Exception:
             pass
 
@@ -106,7 +103,7 @@ if st.button("🔊 ネイティブ音声で再生"):
             audio_bytes = generate_tts_audio(current["例文"])
             st.audio(audio_bytes, format="audio/mp3")
         except Exception as e:
-            st.error("音声生成でエラーになりました（下に詳細）")
+            st.error("音声生成でエラーになりました")
             st.exception(e)
 
 # ===== ナビゲーション =====
