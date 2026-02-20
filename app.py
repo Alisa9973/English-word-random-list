@@ -2,6 +2,8 @@ import json
 import random
 import streamlit as st
 from openai import OpenAI
+from pathlib import Path
+import tempfile
 
 # ===== OpenAIクライアント =====
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -35,13 +37,26 @@ def new_test(min_no, max_no):
 
 # ===== TTS関数（キャッシュ付き）=====
 @st.cache_data(show_spinner=False)
-def generate_tts_audio(text):
-    response = client.audio.speech.create(
-        model="gpt-4o-mini-tts",
-        voice="alloy",
-        input=text
-    )
-    return response.read()
+def generate_tts_audio(text: str) -> bytes:
+    # 一旦 mp3 に書き出してから bytes を読む（Streamlitで安定）
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+        tmp_path = Path(tmp.name)
+
+    try:
+        with client.audio.speech.with_streaming_response.create(
+            model="gpt-4o-mini-tts",
+            voice="alloy",
+            input=text,
+        ) as response:
+            response.stream_to_file(tmp_path)  # ←公式のやり方 :contentReference[oaicite:1]{index=1}
+
+        return tmp_path.read_bytes()
+
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
 
 # ===== 出題範囲スライダー =====
 max_number = max(int(item["番号"]) for item in DATA)
@@ -76,8 +91,8 @@ st.markdown(
     <div style="font-size:1.25em; line-height:1.7;
                 padding:14px; border-radius:10px;
                 background:#f6f7f9;">
-      <b>{st.session_state.range_label}</b><br><br>
-      <b>Q{st.session_state.index + 1} / 10</b><br><br>
+      <b>{st.session_state.range_label}</b><br>
+      <b>Q{st.session_state.index + 1} / 10</b><br>
       <b>[{current['番号']}]</b> {current['例文']}
     </div>
     """,
@@ -87,8 +102,12 @@ st.markdown(
 # ===== 🔊 AI音声再生ボタン =====
 if st.button("🔊 ネイティブ音声で再生"):
     with st.spinner("音声生成中..."):
-        audio_bytes = generate_tts_audio(current["例文"])
-        st.audio(audio_bytes, format="audio/mp3")
+        try:
+            audio_bytes = generate_tts_audio(current["例文"])
+            st.audio(audio_bytes, format="audio/mp3")
+        except Exception as e:
+            st.error("音声生成でエラーになりました（下に詳細）")
+            st.exception(e)
 
 # ===== ナビゲーション =====
 colA, colB = st.columns(2)
