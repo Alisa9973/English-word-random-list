@@ -1,10 +1,6 @@
 import json
 import random
 import streamlit as st
-from openai import OpenAI
-
-# ===== OpenAIクライアント =====
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.set_page_config(page_title="例文ランダム表示", page_icon="🎲")
 
@@ -33,17 +29,6 @@ def new_test(min_no, max_no):
     st.session_state.index = 0
     st.session_state.range_label = f"{min_no}〜{max_no}"
 
-# ===== TTS関数（キャッシュ付き：同じ例文は2回目以降爆速）=====
-@st.cache_data(show_spinner=False)
-def generate_tts_audio(text: str) -> bytes:
-    # text が同じなら2回目以降はキャッシュが返るので高速＆課金も抑えられる
-    response = client.audio.speech.create(
-        model="gpt-4o-mini-tts",
-        voice="alloy",
-        input=text,
-    )
-    return response.read()
-
 # ===== 出題範囲スライダー =====
 max_number = max(int(item["番号"]) for item in DATA)
 
@@ -69,7 +54,7 @@ if st.button("この範囲で開始"):
 if "test_set" not in st.session_state:
     st.stop()
 
-# ===== 現在の問題 =====
+# ===== 現在の問題表示 =====
 current = st.session_state.test_set[st.session_state.index]
 
 st.markdown(
@@ -84,16 +69,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-# ===== 🔊 AI音声再生ボタン =====
-if st.button("🔊 ネイティブ音声で再生"):
-    with st.spinner("音声生成中..."):
-        try:
-            audio_bytes = generate_tts_audio(current["例文"])
-            st.audio(audio_bytes, format="audio/mp3")
-        except Exception as e:
-            st.error("音声生成でエラーになりました")
-            st.exception(e)
 
 # ===== ナビゲーション =====
 colA, colB = st.columns(2)
