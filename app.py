@@ -1,7 +1,10 @@
 import json
 import random
 import streamlit as st
-import streamlit.components.v1 as components
+from openai import OpenAI
+
+# ===== OpenAIクライアント =====
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.set_page_config(page_title="例文ランダム表示", page_icon="🎲")
 
@@ -29,6 +32,15 @@ def new_test(min_no, max_no):
     st.session_state.test_set = random.sample(filtered, 10)
     st.session_state.index = 0
     st.session_state.range_label = f"{min_no}〜{max_no}"
+
+# ===== TTS関数（AI音声）=====
+def generate_tts_audio(text):
+    response = client.audio.speech.create(
+        model="gpt-4o-mini-tts",   # ネイティブ風
+        voice="alloy",             # alloy / verse など選べる
+        input=text
+    )
+    return response.read()
 
 # ===== 出題範囲スライダー =====
 max_number = max(int(item["番号"]) for item in DATA)
@@ -71,39 +83,11 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ===== 🔊 読み上げボタン =====
-def tts_button(text: str):
-    safe_text = (
-        text.replace("\\", "\\\\")
-            .replace("`", "\\`")
-            .replace("$", "\\$")
-    )
-
-    html = f"""
-    <button style="
-        padding:10px 16px;
-        border-radius:8px;
-        border:1px solid #ddd;
-        background:#ffffff;
-        cursor:pointer;
-        font-size:16px;">
-        🔊 読み上げ
-    </button>
-
-    <script>
-    const button = document.currentScript.previousElementSibling;
-    button.onclick = () => {{
-        const utter = new SpeechSynthesisUtterance(`{safe_text}`);
-        utter.lang = "en-US";
-        utter.rate = 1.0;
-        speechSynthesis.cancel();
-        speechSynthesis.speak(utter);
-    }};
-    </script>
-    """
-    components.html(html, height=60)
-
-tts_button(current["例文"])
+# ===== 🔊 AI音声再生ボタン =====
+if st.button("🔊 ネイティブ音声で再生"):
+    with st.spinner("音声生成中..."):
+        audio_bytes = generate_tts_audio(current["例文"])
+        st.audio(audio_bytes, format="audio/mp3")
 
 # ===== ナビゲーション =====
 colA, colB = st.columns(2)
