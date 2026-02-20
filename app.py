@@ -1,11 +1,15 @@
 import json
 import random
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="例文ランダム表示", page_icon="🎲")
 
 st.markdown("### 🎲 例文ランダムテスト（10問）")
-st.markdown("<div style='font-size:0.9em; color:gray;'>出題範囲を選択</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div style='font-size:0.9em; color:gray;'>出題範囲を選択</div>",
+    unsafe_allow_html=True
+)
 
 # ===== JSON読み込み =====
 with open("data.json", encoding="utf-8") as f:
@@ -47,13 +51,11 @@ st.caption(f"現在の範囲：{start}〜{end}")
 if st.button("この範囲で開始"):
     new_test(start, end)
 
-
-
 # ===== 範囲未選択時 =====
 if "test_set" not in st.session_state:
     st.stop()
 
-# ===== 現在の問題表示 =====
+# ===== 現在の問題 =====
 current = st.session_state.test_set[st.session_state.index]
 
 st.markdown(
@@ -68,6 +70,40 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# ===== 🔊 読み上げボタン =====
+def tts_button(text: str):
+    safe_text = (
+        text.replace("\\", "\\\\")
+            .replace("`", "\\`")
+            .replace("$", "\\$")
+    )
+
+    html = f"""
+    <button style="
+        padding:10px 16px;
+        border-radius:8px;
+        border:1px solid #ddd;
+        background:#ffffff;
+        cursor:pointer;
+        font-size:16px;">
+        🔊 読み上げ
+    </button>
+
+    <script>
+    const button = document.currentScript.previousElementSibling;
+    button.onclick = () => {{
+        const utter = new SpeechSynthesisUtterance(`{safe_text}`);
+        utter.lang = "en-US";
+        utter.rate = 1.0;
+        speechSynthesis.cancel();
+        speechSynthesis.speak(utter);
+    }};
+    </script>
+    """
+    components.html(html, height=60)
+
+tts_button(current["例文"])
 
 # ===== ナビゲーション =====
 colA, colB = st.columns(2)
