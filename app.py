@@ -2,8 +2,6 @@ import json
 import random
 import streamlit as st
 from openai import OpenAI
-from pathlib import Path
-import tempfile
 
 # ===== OpenAIクライアント =====
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -35,25 +33,16 @@ def new_test(min_no, max_no):
     st.session_state.index = 0
     st.session_state.range_label = f"{min_no}〜{max_no}"
 
-# ===== TTS関数（安定版）=====
+# ===== TTS関数（キャッシュ付き：同じ例文は2回目以降爆速）=====
+@st.cache_data(show_spinner=False)
 def generate_tts_audio(text: str) -> bytes:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
-        tmp_path = Path(tmp.name)
-
-    try:
-        response = client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice="alloy",
-            input=text,
-        )
-        tmp_path.write_bytes(response.read())
-        return tmp_path.read_bytes()
-
-    finally:
-        try:
-            tmp_path.unlink()
-        except Exception:
-            pass
+    # text が同じなら2回目以降はキャッシュが返るので高速＆課金も抑えられる
+    response = client.audio.speech.create(
+        model="gpt-4o-mini-tts",
+        voice="alloy",
+        input=text,
+    )
+    return response.read()
 
 # ===== 出題範囲スライダー =====
 max_number = max(int(item["番号"]) for item in DATA)
@@ -88,8 +77,8 @@ st.markdown(
     <div style="font-size:1.25em; line-height:1.7;
                 padding:14px; border-radius:10px;
                 background:#f6f7f9;">
-      <b>{st.session_state.range_label}</b><br>
-      <b>Q{st.session_state.index + 1} / 10</b><br>
+      <b>{st.session_state.range_label}</b><br><br>
+      <b>Q{st.session_state.index + 1} / 10</b><br><br>
       <b>[{current['番号']}]</b> {current['例文']}
     </div>
     """,
