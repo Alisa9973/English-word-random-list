@@ -84,7 +84,7 @@ def review_wrong():
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("🎯 新しく10問", use_container_width=True):
+    if st.button("🎯 新しい10問", use_container_width=True):
         new_test()
 
 with col2:
@@ -92,7 +92,7 @@ with col2:
         review_wrong()
 
 if not st.session_state.test_set:
-    st.info("左の範囲を決めて「新しく10問」を押してね")
+    st.info("左の範囲を決めて「新しい10問」を押してね")
     st.stop()
 
 # ===== 現在の問題 =====
@@ -106,7 +106,7 @@ st.markdown(f"""
 """)
 
 # ===== 日本語訳（タップで表示/非表示） =====
-if st.button("🈶 日本語訳を表示 / 非表示", use_container_width=True):
+if st.button("日本語訳を表示 / 非表示", use_container_width=True):
     st.session_state.show_jp = not st.session_state.show_jp
 
 if st.session_state.show_jp:
@@ -123,6 +123,7 @@ with colA:
     if st.button("⭕ 正解", use_container_width=True):
         st.session_state.index += 1
         st.session_state.show_jp = False
+        st.rerun()
 
 with colB:
     if st.button("❌ 不正解", use_container_width=True):
@@ -130,6 +131,7 @@ with colB:
             st.session_state.wrong_list.append(current)
         st.session_state.index += 1
         st.session_state.show_jp = False
+        st.rerun()
 
 # ===== 終了 =====
 if st.session_state.index >= len(st.session_state.test_set):
