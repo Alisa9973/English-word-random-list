@@ -3,86 +3,101 @@ import random
 import streamlit as st
 
 st.set_page_config(page_title="例文ランダム表示", page_icon="🎲")
-
 st.markdown("### 🎲 例文ランダムテスト（10問）")
-st.markdown(
-    "<div style='font-size:0.9em; color:gray;'>出題範囲を選択</div>",
-    unsafe_allow_html=True
-)
 
 # ===== JSON読み込み =====
 with open("data.json", encoding="utf-8") as f:
-    DATA = json.load(f)
+    RAW = json.load(f)
 
-# ===== テスト生成関数 =====
-def new_test(min_no, max_no):
-    filtered = [
-        item for item in DATA
-        if min_no <= int(item["番号"]) <= max_no
-    ]
+# ===== データ整形 =====
+DATA = []
+for item in RAW:
+    try:
+        no = int(str(item.get("番号", "")).strip())
+        ex = str(item.get("例文", "")).strip()
+        jp = str(item.get("日本語訳", "")).strip()  # ★追加
+        if ex:
+            DATA.append({"番号": no, "例文": ex, "日本語訳": jp})  # ★追加
+    except:
+        pass
 
-    if len(filtered) < 10:
-        st.error("その範囲には10問未満しかありません")
-        return
+# ===== state =====
+if "wrong_list" not in st.session_state:
+    st.session_state.wrong_list = []
 
-    st.session_state.test_set = random.sample(filtered, 10)
+if "review_mode" not in st.session_state:
+    st.session_state.review_mode = False
+
+if "show_jp" not in st.session_state:
+    st.session_state.show_jp = False
+
+# ===== テスト生成 =====
+def new_test():
+    st.session_state.test_set = random.sample(DATA, 10)
     st.session_state.index = 0
-    st.session_state.range_label = f"{min_no}〜{max_no}"
+    st.session_state.review_mode = False
+    st.session_state.show_jp = False
 
-# ===== 出題範囲スライダー =====
-max_number = max(int(item["番号"]) for item in DATA)
+def review_wrong():
+    if len(st.session_state.wrong_list) == 0:
+        st.warning("まだ×はありません")
+        return
+    st.session_state.test_set = st.session_state.wrong_list.copy()
+    st.session_state.index = 0
+    st.session_state.review_mode = True
+    st.session_state.show_jp = False
 
-block_size = 100
-max_block = (max_number - 1) // block_size
+# ===== ボタン =====
+col1, col2 = st.columns(2)
 
-selected_block = st.slider(
-    "出題範囲（100語刻み）",
-    min_value=0,
-    max_value=max_block,
-    value=0
-)
+with col1:
+    if st.button("🎯 新しく10問"):
+        new_test()
 
-start = selected_block * block_size + 1
-end = min(start + block_size - 1, max_number)
+with col2:
+    if st.button("📚 ×だけ復習"):
+        review_wrong()
 
-st.caption(f"現在の範囲：{start}〜{end}")
-
-if st.button("この範囲で開始"):
-    new_test(start, end)
-
-# ===== 範囲未選択時 =====
 if "test_set" not in st.session_state:
     st.stop()
 
-# ===== 現在の問題表示 =====
 current = st.session_state.test_set[st.session_state.index]
 
-st.markdown(
-    f"""
-    <div style="font-size:1.25em; line-height:1.7;
-                padding:14px; border-radius:10px;
-                background:#f6f7f9;">
-      <b>{st.session_state.range_label}</b><br><br>
-      <b>Q{st.session_state.index + 1} / 10</b><br><br>
-      <b>[{current['番号']}]</b> {current['例文']}
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown(f"""
+### Q{st.session_state.index + 1}
 
-# ===== ナビゲーション =====
+**[{current['番号']}]**  
+{current['例文']}
+""")
+
+# ===== 日本語訳（クリック/タップ） =====
+if st.button("🈶 日本語訳を表示 / 非表示", use_container_width=True):
+    st.session_state.show_jp = not st.session_state.show_jp
+
+if st.session_state.show_jp:
+    jp = current.get("日本語訳", "").strip()
+    if jp:
+        st.info(jp)
+    else:
+        st.warning("この問題には日本語訳が入っていません")
+
+# ===== ○ × ボタン =====
 colA, colB = st.columns(2)
 
 with colA:
-    if st.session_state.index < 9:
-        if st.button("次へ ▶", use_container_width=True):
-            st.session_state.index += 1
-    else:
-        st.success("🎉 テスト終了！")
+    if st.button("⭕ 正解"):
+        st.session_state.index += 1
+        st.session_state.show_jp = False  # 次の問題で閉じる
 
 with colB:
-    if st.button("🔄 やり直す", use_container_width=True):
-        parts = st.session_state.range_label.split("〜")
-        new_test(int(parts[0]), int(parts[1]))
+    if st.button("❌ 不正解"):
+        if current not in st.session_state.wrong_list:
+            st.session_state.wrong_list.append(current)
+        st.session_state.index += 1
+        st.session_state.show_jp = False  # 次の問題で閉じる
 
-st.caption(f"全 {len(DATA)} 件")
+# ===== 次の問題 =====
+if st.session_state.index >= len(st.session_state.test_set):
+    st.success("🎉 終了！")
+    st.write(f"❌ 記録された問題数: {len(st.session_state.wrong_list)}")
+    st.stop()
